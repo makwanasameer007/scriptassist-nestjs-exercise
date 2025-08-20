@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Task } from '../../tasks/entities/task.entity';
 import { Exclude } from 'class-transformer';
 
@@ -7,6 +7,7 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index('idx_users_email', { unique: true })
   @Column({ unique: true })
   email: string;
 
@@ -19,6 +20,10 @@ export class User {
 
   @Column({ default: 'user' })
   role: string;
+
+  @Exclude({ toPlainOnly: true })
+  @Column({ name: 'refresh_token_hash', type: 'varchar', nullable: true })
+  refreshTokenHash?: string | null;
 
   @OneToMany(() => Task, (task) => task.user)
   tasks: Task[];

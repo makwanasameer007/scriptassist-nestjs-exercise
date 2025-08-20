@@ -53,4 +53,15 @@ export class UsersService {
     const user = await this.findOne(id);
     await this.usersRepository.remove(user);
   }
+
+  async setHashedRefreshToken(userId: string, refreshToken: string): Promise<void> {
+    const hash = await bcrypt.hash(refreshToken, 12);
+    await this.usersRepository.update({ id: userId }, { refreshTokenHash: hash });
+  }
+
+  async isRefreshTokenValid(userId: string, refreshToken: string): Promise<boolean> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user || !user.refreshTokenHash) return false;
+    return bcrypt.compare(refreshToken, user.refreshTokenHash);
+  }
 } 

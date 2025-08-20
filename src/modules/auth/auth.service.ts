@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -33,8 +34,11 @@ export class AuthService {
       role: user.role
     };
 
+    const { accessToken, refreshToken } = await this.issueTokens(user.id, payload);
+    await this.usersService.setHashedRefreshToken(user.id, refreshToken);
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -52,8 +56,9 @@ export class AuthService {
 
     const user = await this.usersService.create(registerDto);
 
-    const token = this.generateToken(user.id);
-
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const { accessToken, refreshToken } = await this.issueTokens(user.id, payload);
+    await this.usersService.setHashedRefreshToken(user.id, refreshToken);
     return {
       user: {
         id: user.id,
@@ -61,13 +66,16 @@ export class AuthService {
         name: user.name,
         role: user.role,
       },
-      token,
+      access_token: accessToken,
+      refresh_token: refreshToken,
     };
   }
 
-  private generateToken(userId: string) {
-    const payload = { sub: userId };
-    return this.jwtService.sign(payload);
+  private async issueTokens(userId: string, basePayload: any) {
+    const accessToken = this.jwtService.sign(basePayload);
+    // Rotating opaque refresh token stored hashed server-side
+    const refreshToken = randomBytes(48).toString('base64url');
+    return { accessToken, refreshToken };
   }
 
   async validateUser(userId: string): Promise<any> {
@@ -82,5 +90,17 @@ export class AuthService {
 
   async validateUserRoles(userId: string, requiredRoles: string[]): Promise<boolean> {
     return true;
+  }
+
+  async rotateRefreshToken(userId: string, providedToken: string) {
+    const valid = await this.usersService.isRefreshTokenValid(userId, providedToken);
+    if (!valid) {
+      throw new ForbiddenException('Invalid refresh token');
+    }
+    const user = await this.usersService.findOne(userId);
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const { accessToken, refreshToken } = await this.issueTokens(user.id, payload);
+    await this.usersService.setHashedRefreshToken(user.id, refreshToken);
+    return { access_token: accessToken, refresh_token: refreshToken };
   }
 } 
