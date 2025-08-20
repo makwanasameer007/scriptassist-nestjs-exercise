@@ -12,6 +12,7 @@ export class CreateInitialSchema1710752400000 implements MigrationInterface {
         "name" varchar NOT NULL,
         "password" varchar NOT NULL,
         "role" varchar NOT NULL DEFAULT 'user',
+        "refresh_token_hash" varchar,
         "created_at" TIMESTAMP NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMP NOT NULL DEFAULT now()
       )
@@ -34,10 +35,17 @@ export class CreateInitialSchema1710752400000 implements MigrationInterface {
         CONSTRAINT "fk_user_id" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
       )
     `);
+
+    // Useful indexes for performance
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks (status)`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks (priority)`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks (due_date)`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks (user_id)`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP TABLE IF EXISTS "tasks"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "users"`);
   }
-} 
+}

@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { TaskStatus } from '../enums/task-status.enum';
 import { TaskPriority } from '../enums/task-priority.enum';
@@ -14,6 +14,7 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Index('idx_tasks_status')
   @Column({
     type: 'enum',
     enum: TaskStatus,
@@ -21,6 +22,7 @@ export class Task {
   })
   status: TaskStatus;
 
+  @Index('idx_tasks_priority')
   @Column({
     type: 'enum',
     enum: TaskPriority,
@@ -28,13 +30,15 @@ export class Task {
   })
   priority: TaskPriority;
 
+  @Index('idx_tasks_due_date')
   @Column({ name: 'due_date', nullable: true })
   dueDate: Date;
 
+  @Index('idx_tasks_user_id')
   @Column({ name: 'user_id' })
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.tasks)
+  @ManyToOne(() => User, (user) => user.tasks, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

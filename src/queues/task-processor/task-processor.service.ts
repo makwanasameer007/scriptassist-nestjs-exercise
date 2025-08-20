@@ -31,9 +31,9 @@ export class TaskProcessorService extends WorkerHost {
           return { success: false, error: 'Unknown job type' };
       }
     } catch (error) {
-      // Basic error logging without proper handling or retries
       this.logger.error(`Error processing job ${job.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      throw error; // Simply rethrows the error without any retry strategy
+      // Let BullMQ retry according to job options configured at enqueue time
+      throw error;
     }
   }
 
